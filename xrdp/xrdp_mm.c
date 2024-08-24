@@ -3579,6 +3579,9 @@ xrdp_mm_process_enc_done(struct xrdp_mm *self)
     int is_gfx;
     int got_frame_id;
     int client_ack;
+    struct xrdp_egfx_rect rect;
+
+    LOG(LOG_LEVEL_TRACE, "xrdp_mm_process_enc_done:");
 
     LOG(LOG_LEVEL_TRACE, "xrdp_mm_process_enc_done:");
 
@@ -3592,6 +3595,14 @@ xrdp_mm_process_enc_done(struct xrdp_mm *self)
         {
             break;
         }
+        /* do something with msg */
+        LOG_DEVEL(LOG_LEVEL_DEBUG, "xrdp_mm_process_enc_done: message back bytes %d",
+                  enc_done->comp_bytes);
+        x = enc_done->x;
+        y = enc_done->y;
+        cx = enc_done->cx;
+        cy = enc_done->cy;
+
         is_gfx = ENC_IS_BIT_SET(enc_done->flags, ENC_DONE_FLAGS_GFX_BIT);
         if (is_gfx)
         {
@@ -3608,6 +3619,7 @@ xrdp_mm_process_enc_done(struct xrdp_mm *self)
                   "bytes %d", enc_done->comp_bytes);
         if (enc_done->comp_bytes > 0)
         {
+/* <<<<<<< HEAD */
             if (is_gfx)
             {
                 xrdp_egfx_send_data(self->egfx,
@@ -3639,12 +3651,66 @@ xrdp_mm_process_enc_done(struct xrdp_mm *self)
                                                        enc_done->frame_id);
                 }
             }
+// ======= */
+            LOG_DEVEL(LOG_LEVEL_TRACE, "xrdp_mm_process_enc_done: x %d y %d cx %d cy %d "
+                      "frame_id %d use_frame_acks %d", x, y, cx, cy,
+                      enc_done->frame_id,
+                      self->wm->client_info->use_frame_acks);
+            if (enc_done->flags & 1) /* gfx h264 */
+            {
+                xrdp_egfx_send_frame_start(self->egfx,
+                                           enc_done->frame_id, 0);
+                rect.x1 = x;
+                rect.y1 = y;
+                rect.x2 = x + cx;
+                rect.y2 = y + cy;
+                xrdp_egfx_send_wire_to_surface1(self->egfx, self->egfx->surface_id,
+#if XRDP_AVC444
+                                                XR_RDPGFX_CODECID_AVC444V2,
+#else
+                                                XR_RDPGFX_CODECID_AVC420,
+#endif
+                                                XR_PIXEL_FORMAT_XRGB_8888,
+                                                &rect,
+                                                enc_done->comp_pad_data + enc_done->pad_bytes,
+                                                enc_done->comp_bytes);
+                xrdp_egfx_send_frame_end(self->egfx, enc_done->frame_id);
+            }
+            else if (enc_done->flags & 2) /* gfx progressive rfx */
+            {
+                xrdp_egfx_send_frame_start(self->egfx,
+                                           enc_done->frame_id, 0);
+                xrdp_egfx_send_wire_to_surface2(self->egfx, self->egfx->surface_id, 9, 1,
+                                                XR_PIXEL_FORMAT_XRGB_8888,
+                                                enc_done->comp_pad_data + enc_done->pad_bytes,
+                                                enc_done->comp_bytes);
+                xrdp_egfx_send_frame_end(self->egfx, enc_done->frame_id);
+            }
+            else
+            {
+                libxrdp_fastpath_send_frame_marker(self->wm->session, 0,
+                                                   enc_done->frame_id);
+                libxrdp_fastpath_send_surface(self->wm->session,
+                                              enc_done->comp_pad_data,
+                                              enc_done->pad_bytes,
+                                              enc_done->comp_bytes,
+                                              x, y, x + cx, y + cy,
+                                              32, self->encoder->codec_id,
+                                              cx, cy);
+                if (client_ack && enc_done->last)
+                {
+                    libxrdp_fastpath_send_frame_marker(self->wm->session, 1,
+                                                       enc_done->frame_id);
+                }
+            }
+/* >>>>>>> nexarian/mainline_merge */
         }
         /* free enc_done */
         if (enc_done->last)
         {
             enc = enc_done->enc;
             LOG_DEVEL(LOG_LEVEL_DEBUG, "xrdp_mm_process_enc_done: last set");
+/* <<<<<<< HEAD */
             if (got_frame_id)
             {
                 if (client_ack)
@@ -3666,6 +3732,37 @@ xrdp_mm_process_enc_done(struct xrdp_mm *self)
             {
                 g_free(enc->u.sc.drects);
                 g_free(enc->u.sc.crects);
+ /* =======
+            if (enc_done->flags & 3) // gfx
+            {
+                if (self->encoder->gfx_ack_off)
+                {
+                    // gfx and client turned off client frame acks
+                    self->mod->mod_frame_ack(self->mod,
+                                             enc_done->flags,
+                                             enc_done->frame_id);
+                }
+                else
+                {
+                    self->encoder->frame_id_server = enc_done->frame_id;
+                    xrdp_mm_update_module_frame_ack(self);
+                }
+            }
+            else
+            {
+                if (self->wm->client_info->use_frame_acks == 0)
+                {
+                    // surface commmand and client does not do frame acks
+                    self->mod->mod_frame_ack(self->mod,
+                                             enc_done->flags,
+                                             enc_done->frame_id);
+                }
+                else
+                {
+                    self->encoder->frame_id_server = enc_done->frame_id;
+                    xrdp_mm_update_module_frame_ack(self);
+                }
+// >>>>>>> nexarian/mainline_merge */
             }
             if (enc->shmem_ptr != NULL)
             {
@@ -3920,6 +4017,20 @@ xrdp_mm_frame_ack(struct xrdp_mm *self, int frame_id)
     }
     xrdp_mm_update_module_frame_ack(self);
     return 0;
+}
+
+int
+xrdp_mm_can_resize(struct xrdp_mm *self)
+{
+    if (self == 0)
+    {
+        return 0;
+    }
+    if (self->gfx_delay_autologin == 1)
+    {
+        return 0;
+    }
+    return xrdp_wm_can_resize(self->wm);
 }
 
 #if 0
@@ -4711,6 +4822,71 @@ server_monitor_resize_done(struct xrdp_mod *mod)
         advance_resize_state_machine(
             mm, WMRZ_SERVER_MONITOR_MESSAGE_PROCESSED);
     }
+
+    /*
+    // bpp of zero is impossible.
+    // This is a signal from xup that
+    // It is finished resizing.
+    if (bpp == 0)
+    {
+        if (mm == 0)
+        {
+            return 1;
+        }
+        if (!xrdp_wm_can_resize(wm))
+        {
+            return 1;
+        }
+        if (mm->resize_data == NULL)
+        {
+            mm->mod->mod_server_monitor_full_invalidate(mm->mod, width, height);
+            return 0;
+        }
+        if (mm->resize_data != NULL
+                && mm->resize_data->state
+                == WMRZ_SERVER_MONITOR_MESSAGE_PROCESSING)
+        {
+            LOG(LOG_LEVEL_INFO,
+                "server_reset: Advancing server monitor resized.");
+            advance_resize_state_machine(
+                mm, WMRZ_SERVER_MONITOR_MESSAGE_PROCESSED);
+        }
+        else if (mm->resize_data != NULL
+                 && mm->resize_data->description.session_height == 0
+                 && mm->resize_data->description.session_width == 0)
+        {
+            mm->mod->mod_server_monitor_full_invalidate(mm->mod, width, height);
+        }
+        return 0;
+    }
+
+    // if same (and only one monitor on client) don't need to do anything
+    if (wm->client_info->display_sizes.session_width == (uint32_t)width &&
+            wm->client_info->display_sizes.session_height == (uint32_t)height &&
+            wm->client_info->bpp == bpp &&
+            (wm->client_info->display_sizes.monitorCount == 0 ||
+             wm->client_info->multimon == 0))
+    {
+        return 0;
+    }
+
+    LOG(LOG_LEVEL_INFO, "server_reset: Actually resetting the server.");
+
+    // reset lib, client_info gets updated in libxrdp_reset
+    if (libxrdp_reset(wm->session, width, height, bpp) != 0)
+    {
+        return 1;
+    }
+
+    // reset cache
+    xrdp_cache_reset(wm->cache, wm->client_info);
+    // resize the main window
+    xrdp_bitmap_resize(wm->screen, wm->client_info->display_sizes.session_width,
+                       wm->client_info->display_sizes.session_height);
+    // load some stuff
+    xrdp_wm_load_static_colors_plus(wm, 0);
+    xrdp_wm_load_static_pointers(wm);
+    */
     return 0;
 }
 

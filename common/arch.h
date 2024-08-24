@@ -37,8 +37,8 @@ typedef unsigned __int64 uint64_t;
 typedef signed __int64 intptr_t;
 typedef unsigned __int64 uintptr_t;
 #else
-typedef signed long long int64_t;
-typedef unsigned long long uint64_t;
+typedef signed long int64_t;
+typedef unsigned long uint64_t;
 typedef signed long intptr_t;
 typedef unsigned long uintptr_t;
 #endif

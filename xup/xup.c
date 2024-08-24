@@ -1596,7 +1596,7 @@ lib_mod_process_orders(struct mod *mod, int type, struct stream *s)
 {
     int rv;
 
-    LOG_DEVEL(LOG_LEVEL_DEBUG, "lib_mod_process_orders: type %d", type);
+    LOG_DEVEL(LOG_LEVEL_INFO, "lib_mod_process_orders: type %d", type);
     rv = 0;
     switch (type)
     {
@@ -1746,12 +1746,15 @@ lib_mod_process_message(struct mod *mod, struct stream *s)
 
     int width;
     int height;
+    int magic;
+    int con_id;
+    int mon_id;
 
-    LOG_DEVEL(LOG_LEVEL_TRACE, "lib_mod_process_message:");
+    LOG_DEVEL(LOG_LEVEL_INFO, "lib_mod_process_message:");
     in_uint16_le(s, type);
     in_uint16_le(s, num_orders);
     in_uint32_le(s, len);
-    LOG_DEVEL(LOG_LEVEL_DEBUG, "lib_mod_process_message: type %d", type);
+    LOG_DEVEL(LOG_LEVEL_INFO, "lib_mod_process_message: type %d", type);
 
     rv = 0;
     if (type == 1) /* original order list */
@@ -1820,12 +1823,31 @@ lib_mod_process_message(struct mod *mod, struct stream *s)
             in_uint16_le(s, len);
             switch (type)
             {
-                case 3: // memory allocation complete
+                case 1: // xorgxrdp_helper_x11_delete_all_pixmaps
+                    // No-op for now.
+                    break;
+                case 2: // xorgxrdp_helper_x11_create_pixmap
+                    in_uint16_le(s, width);
+                    in_uint16_le(s, height);
+                    in_uint32_le(s, magic);
+                    in_uint32_le(s, con_id);
+                    in_uint32_le(s, mon_id);
+
+                    LOG(LOG_LEVEL_INFO, "Received"
+                        " xorgxrdp_helper_x11_create_pixmap command."
+                        " width: %d, height: %d, magic: %d, con_id %d,"
+                        " mon_id %d",
+                        width, height, magic, con_id, mon_id);
+                    // rv = mod->server_reset(mod, width, height, 0);
+                    rv = mod->server_monitor_resize_done(mod);
+                    break;
+                case 3:
                     in_uint16_le(s, width);
                     in_uint16_le(s, height);
                     LOG(LOG_LEVEL_INFO, "Received memory_allocation_complete"
                         " command. width: %d, height: %d",
                         width, height);
+                    // rv = mod->server_reset(mod, width, height, 0);
                     rv = mod->server_monitor_resize_done(mod);
                     break;
             }

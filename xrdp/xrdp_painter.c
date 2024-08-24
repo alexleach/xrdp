@@ -153,7 +153,6 @@ xrdp_painter_create(struct xrdp_wm *wm, struct xrdp_session *session)
     self->session = session;
     self->rop = 0xcc; /* copy will use 0xcc */
     self->clip_children = 1;
-
     if (self->session->client_info->no_orders_supported ||
             self->session->client_info->gfx)
     {

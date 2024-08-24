@@ -146,7 +146,6 @@ xrdp_wm_delete(struct xrdp_wm *self)
     {
         return;
     }
-
     xrdp_region_delete(self->screen_dirty_region);
     xrdp_mm_delete(self->mm);
     xrdp_cache_delete(self->cache);

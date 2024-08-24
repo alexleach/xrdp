@@ -1,7 +1,7 @@
 /**
  * xrdp: A Remote Desktop Protocol server.
  *
- * Copyright (C) Jay Sorg 2016-2024
+ * Copyright (C) Jay Sorg 2022
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,27 +14,20 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * libx264 Encoder
- * Yami Encoder
  */
 
-#ifndef _XRDP_ENCODER_X264_H
-#define _XRDP_ENCODER_X264_H
+#ifndef _XORGXRDP_HELPER_EGL_H
+#define _XORGXRDP_HELPER_EGL_H
 
-#include "arch.h"
-
-void *
-xrdp_encoder_x264_create(void);
 int
-xrdp_encoder_x264_delete(void *handle);
+xorgxrdp_helper_inf_egl_init(void);
 int
-xrdp_encoder_x264_encode(void *handle, int session, int left, int top,
-                         int width, int height, int twidth, int theight,
-                         int format, const char *data,
-                         short *crects, int num_crects,
-                         char *cdata, int *cdata_bytes, int connection_type,
-                         int *flags_ptr);
+xorgxrdp_helper_inf_egl_create_image(Pixmap pixmap, inf_image_t *inf_image);
+int
+xorgxrdp_helper_inf_egl_destroy_image(inf_image_t inf_image);
+int
+xorgxrdp_helper_inf_egl_bind_tex_image(inf_image_t inf_image);
+int
+xorgxrdp_helper_inf_egl_release_tex_image(inf_image_t inf_image);
 
 #endif
-

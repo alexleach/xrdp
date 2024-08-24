@@ -79,8 +79,9 @@ in
             libx11-dev \
             libxrandr-dev \
             libxfixes-dev \
-            libxkbfile-dev"
-
+            libxkbfile-dev \
+            libepoxy-dev \
+            libepoxy0"
         case "$FEATURE_SET"
         in
             min)
@@ -121,6 +122,7 @@ in
             libgl1-mesa-dev:i386 \
             libglu1-mesa-dev:i386 \
             libibus-1.0-dev:i386 \
+            libegl1-mesa-dev:i386 \
             libjpeg-dev:i386 \
             libimlib2-dev:i386 \
             libmp3lame-dev:i386 \
@@ -135,8 +137,9 @@ in
             libxrender-dev:i386 \
             libsubunit-dev:i386 \
             check:i386 \
-            libcmocka-dev:i386"
-
+            libcmocka-dev:i386 \
+            libepoxy-dev:i386 \
+            libepoxy0:i386"
         dpkg --add-architecture i386
         dpkg --print-architecture
         dpkg --print-foreign-architectures

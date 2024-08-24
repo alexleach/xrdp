@@ -246,7 +246,6 @@ struct xrdp_client_info
      * data */
     unsigned int session_physical_width; /* in mm */
     unsigned int session_physical_height; /* in mm */
-
     int large_pointer_support_flags;
     int gfx;
 
