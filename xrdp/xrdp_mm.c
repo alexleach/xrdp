@@ -3583,8 +3583,6 @@ xrdp_mm_process_enc_done(struct xrdp_mm *self)
 
     LOG(LOG_LEVEL_TRACE, "xrdp_mm_process_enc_done:");
 
-    LOG(LOG_LEVEL_TRACE, "xrdp_mm_process_enc_done:");
-
     while (1)
     {
         tc_mutex_lock(self->encoder->mutex);

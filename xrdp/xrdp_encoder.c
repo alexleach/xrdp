@@ -179,10 +179,9 @@ xrdp_encoder_create(struct xrdp_mm *mm)
         self->in_codec_mode = 1;
         client_info->capture_code = CC_GFX_A2;
         client_info->capture_format = XRDP_nv12_709fr;
+        self->process_enc = process_enc_h264;
         self->gfx = 1;
-#if defined(XRDP_X264)
         self->codec_handle_h264 = xrdp_encoder_x264_create();
-#endif
     }
     else if (client_info->h264_codec_id != 0)
     {
@@ -192,9 +191,7 @@ xrdp_encoder_create(struct xrdp_mm *mm)
         client_info->capture_code = CC_SUF_A2;
         client_info->capture_format = XRDP_nv12;
         self->process_enc = process_enc_h264;
-#if defined(XRDP_X264)
         self->codec_handle_h264 = xrdp_encoder_x264_create();
-#endif
     }
 #endif
 #ifdef XRDP_RFXCODEC
@@ -204,11 +201,17 @@ xrdp_encoder_create(struct xrdp_mm *mm)
             "xrdp_encoder_create: starting gfx rfx pro codec session");
         self->in_codec_mode = 1;
         client_info->capture_code = CC_GFX_PRO;
+        self->process_enc = process_enc_rfx;
         self->gfx = 1;
         self->num_quants = 2;
         self->quant_idx_y = 0;
         self->quant_idx_u = 1;
         self->quant_idx_v = 1;
+        self->codec_handle = rfxcodec_encode_create(
+                                 mm->wm->screen->width,
+                                 mm->wm->screen->height,
+                                 RFX_FORMAT_YUV,
+                                 RFX_FLAGS_RLGR1 | RFX_FLAGS_PRO1);
 
         switch (client_info->mcs_connection_type)
         {
